@@ -25,9 +25,10 @@
 #include "Engine/Renderer/SceneRenderer/SceneRenderer.hpp"
 #include "Engine/Renderer/Renderable/Renderable.hpp"
 #include "Engine/Graphics/Program/Material.hpp"
+#include "Engine/Framework/Light.hpp"
 
 #define UNUSED(x) (void)x
-
+static float SCENE_SCALE = .01f;
 static bool gQuit = false;
 void CALLBACK windowProc(uint wmMessageCode, size_t /*wParam*/, size_t lParam) {
   UNUSED(lParam);
@@ -102,8 +103,6 @@ S<RHIContext> mContext;
 // RootSignature::sptr_t rootSig;
 
 Camera* mCamera;
-light_info_t mLight;
-Transform mLightTransform;
 Texture2::sptr_t texNormal;
 Texture2::sptr_t texScene;
 Texture2::sptr_t texNoise;
@@ -113,7 +112,7 @@ Texture2::sptr_t texNoise;
 Mesh* mesh;
 RHIBuffer::sptr_t cVp;
 RHIBuffer::sptr_t cLight;
-Texture2::sptr_t texture;
+Texture2::sptr_t mTexture;
 ShaderResourceView::sptr_t texSrv;
 // DescriptorSet::sptr_t descriptorSet;
 FrameBuffer* frameBuffer;
@@ -137,6 +136,7 @@ RHIBuffer::sptr_t computeVerts;
 //uint elementCount = 0; 
 //uint numVerts = 0;
 
+Light mLight;
 void buildMeshDataForCompute(Mesher& mesher) {
   uint size = mesher.mVertices.count();
   vec4* loca = (vec4*)_alloca(size * sizeof(vec4));
@@ -193,8 +193,8 @@ void Initialize() {
   Window::Get()->addWinMessageHandler(windowProc);
   mCamera = new Camera();
   mCamera->transfrom().localPosition() = { -1, -1, -1 };
-  mCamera->lookAt({ -1, -1, -1 }, vec3::zero);
-  mCamera->setProjectionPrespective(30.f, 3.f*CLIENT_ASPECT, 3.f, .1f, 500.f);
+  mCamera->lookAt({ -0.278000f, 0.273000f, 0.799000f }, { -0.278000f, 0.273000f, 0.800000f });
+  mCamera->setProjectionPrespective(39.146252f, 3.f*CLIENT_ASPECT, 3.f, 0.100000f, 1500.000000f);
   
   mDevice = RHIDevice::get();
   mContext = mDevice->defaultRenderContext();
@@ -254,19 +254,65 @@ void Initialize() {
 
     ms.begin(DRAW_TRIANGES, false);
     // ms.cube(vec3(30.f, 100.f, 0), vec3(200.f));
-    ms.cube(vec3(0.f, 10.f, 0.f), vec3(20.f));
-    ms.cube(vec3(10.f, 5.f, 0.f), vec3(10.f));
-    // ms.cube(vec3(20.f, 7.5f, 20.f), vec3(15.f));
-    ms.quad(vec3(0, -10, 7.f), vec3::right, vec3::up, vec2(40.f));
+    ms.color(vec4{ .5f, .5f, .5f, 1.f});
+    ms.quad(SCENE_SCALE * vec3{ 0.0f, 0.0f, 0.0f },
+            SCENE_SCALE * vec3{ 552.8f, 0.0f, 0.0f },
+            SCENE_SCALE * vec3{ 549.6f, 0.0f, 559.2f },
+            SCENE_SCALE * vec3{ 0.0f, 0.0f, 559.2f });  // floor
+
+    ms.quad(
+            SCENE_SCALE * vec3{ 0.0f, 548.8f, 559.2f },
+            SCENE_SCALE * vec3{ 556.0f, 548.8f, 559.2f },
+            SCENE_SCALE * vec3{ 556.0f, 548.8f, 0.0f },
+            SCENE_SCALE * vec3{ 0.0f, 548.8f,   0.0f } );  // ceiling
+
+    ms.quad(SCENE_SCALE * vec3{ 549.6f,   0.0f, 559.2f },
+            SCENE_SCALE * vec3{ 556.0f, 548.8f, 559.2f },
+            SCENE_SCALE * vec3{ 0.0f, 548.8f, 559.2f },
+            SCENE_SCALE * vec3{ 0.0f,   0.0f, 559.2f });  // back wall
+
+    // ms.quad(SCENE_SCALE * vec3{ 0.0f,   0.0f, 0.f },
+    //         SCENE_SCALE * vec3{ 0.0f, 548.8f, 0.f },
+    //         SCENE_SCALE * vec3{ 556.0f, 548.8f, 0.f },
+    //         SCENE_SCALE * vec3{ 549.6f,   0.0f, 0.f });  // back wall
+
+    ms.cube(
+            SCENE_SCALE * (vec3{ 82.f, 0.f, 114.f } +vec3{ 188.f, 0, 0 }),
+            SCENE_SCALE * vec3{ 165.42369842317032f, 165.f, 165.13025161974412f },
+            (vec3(240, 0, 65) - vec3(82, 0, 114)).normalized(),
+            vec3::up,
+            (vec3(130, 0, 272) - vec3(82, 0, 114)).normalized()); // short cube
+
+    ms.cube(
+            SCENE_SCALE * (vec3{ 265.f, 0, 406.f } +vec3{ -180.f, 0, 0 }),
+            SCENE_SCALE * vec3{ 166.37908522407497f, 330.f, 165.72265988693277f }, 
+            (vec3(314, 0, 247) - vec3(265.f, 0, 406.f)).normalized(),
+            vec3::up,
+            (vec3(423, 0, 456) - vec3(265.f, 0, 406.f)).normalized()); // tall cube
+
+    ms.color(Rgba(0, 255, 0));
+    ms.quad(SCENE_SCALE * vec3{ 552.8f,   0.0f,   0.0f },
+            SCENE_SCALE * vec3{ 556.0f, 548.8f,   0.0f },
+            SCENE_SCALE * vec3{ 556.0f, 548.8f, 559.2f },
+            SCENE_SCALE * vec3{ 549.6f,   0.0f, 559.2f });  // right wall
+
+
+    ms.color(Rgba(255, 0, 0));
+    ms.quad(SCENE_SCALE * vec3{ 0.0f,   0.0f, 559.2f },
+            SCENE_SCALE * vec3{ 0.0f, 548.8f, 559.2f },
+            SCENE_SCALE * vec3{ 0.0f, 548.8f,   0.0f },
+            SCENE_SCALE * vec3{ 0.0f,   0.0f,   0.0f });  // left wall
+
     // ms.quad(vec3(-30, 10, 0), -vec3::forward, vec3::up, vec2(20.f));
     ms.end();
     // ms.begin(DRAW_TRIANGES, false);
-    // ms.cube(vec3(-20.f, 15.f, -30), vec3(30.f));
+    
     // ms.end();
-    ms.begin(DRAW_TRIANGES, false);
-    ms.quad(vec3::zero, vec3::right, vec3::forward, vec2(300.f));
+    // ms.begin(DRAW_TRIANGES, false);
+    // ms.color(Rgba(20, 20, 200));
+    // ms.quad(vec3::zero, vec3::right, vec3::forward, vec2(300.f));
     // // ms.sphere(vec3(0, 10.f, 0), 10.f, 15, 15);
-    ms.end();
+    // ms.end();
 
     buildMeshDataForCompute(ms);
 
@@ -279,16 +325,14 @@ void Initialize() {
     camera_t cameraUbo = mCamera->ubo();
     cVp = RHIBuffer::create(sizeof(camera_t), RHIResource::BindingFlag::ConstantBuffer, RHIBuffer::CPUAccess::Write, &cameraUbo);
 
-    light_info_t light;
-    light.asSpotLight(mCamera->transfrom().position(), mCamera->transfrom().forward(), 5.f, 10.f, 1.f);
-    cLight = RHIBuffer::create(sizeof(light_info_t), RHIResource::BindingFlag::ConstantBuffer, RHIBuffer::CPUAccess::Write,
-    &light);
+    mLight.asSpotLight(5.f, 10.f, 1.f);
+
     //
     std::vector<UINT8> data = GenerateTextureData();
-    texture = Texture2::create(texWidth, texHeight, TEXTURE_FORMAT_RGBA8, RHIResource::BindingFlag::ShaderResource, data.data(), data.size());
-
+    mTexture = Texture2::create(texWidth, texHeight, TEXTURE_FORMAT_RGBA8, RHIResource::BindingFlag::ShaderResource, data.data(), data.size());
+    NAME_RHIRES(mTexture);
     defaultMaterial.init();
-    defaultMaterial.setTexture(TEXTURE_DIFFUSE, texture);
+    defaultMaterial.setTexture(TEXTURE_DIFFUSE, mTexture);
 
     std::vector<Rgba> noise = genNoise(w, h);
     texNoise = Texture2::create(w, h, TEXTURE_FORMAT_RGBA8,
@@ -297,10 +341,11 @@ void Initialize() {
     // descriptorSet->setCbv(0, 0, *cVp->cbv());
     // descriptorSet->setCbv(0, 1, *cLight->cbv());
     // descriptorSet->setSrv(1, 0, texture->srv());
-    mContext->resourceBarrier(texture.get(), RHIResource::State::ShaderResource);
+    mContext->resourceBarrier(mTexture.get(), RHIResource::State::ShaderResource);
 
     scene.add(meshRenderable);
     scene.set(*mCamera);
+    scene.add(mLight);
   }
 
   // SSAO resource
@@ -345,35 +390,39 @@ void Initialize() {
   // }
 
   // compute
-  {
-    {
-      RootSignature::Desc desc;
-      RootSignature::desc_set_layout_t layout;
-      layout.addRange(DescriptorSet::Type::TextureUav, 0, 2);
-      layout.addRange(DescriptorSet::Type::Cbv, 0, 2);
-      computeDescriptorSet = DescriptorSet::create(mDevice->gpuDescriptorPool(), layout);
-      desc.addDescriptorSet(layout);
-      computeRootSig = RootSignature::create(desc);
-    }
-    {
-      ComputeState::Desc desc;
-      desc.setRootSignature(computeRootSig);
-      computePipelineState = ComputeState::create(desc);
-    }
-
-    computeDescriptorSet->setUav(0, 0, *texScene->uav());
-    computeDescriptorSet->setUav(0, 1, *computeVerts->uav());
-    computeDescriptorSet->setCbv(1, 0, *cVp->cbv());
-    computeDescriptorSet->setCbv(1, 1, *cLight->cbv());
-  }
+//   {
+//     {
+//       RootSignature::Desc desc;
+//       RootSignature::desc_set_layout_t layout;
+//       layout.addRange(DescriptorSet::Type::TextureUav, 0, 2);
+//       layout.addRange(DescriptorSet::Type::Cbv, 0, 2);
+//       computeDescriptorSet = DescriptorSet::create(mDevice->gpuDescriptorPool(), layout);
+//       desc.addDescriptorSet(layout);
+//       computeRootSig = RootSignature::create(desc);
+//     }
+//     {
+//       ComputeState::Desc desc;
+//       Program::sptr_t prog = Program::sptr_t(new Program());
+//       desc.setRootSignature(computeRootSig);
+//       prog->stage(SHADER_TYPE_COMPUTE).setFromFile("compute.hlsl", "main");
+//       prog->compile();
+//       desc.setProgram(prog);
+//       computePipelineState = ComputeState::create(desc);
+//     }
+//
+//     computeDescriptorSet->setUav(0, 0, *texScene->uav());
+//     computeDescriptorSet->setUav(0, 1, *computeVerts->uav());
+//     computeDescriptorSet->setCbv(1, 0, *cVp->cbv());
+//     // computeDescriptorSet->setCbv(1, 1, *cLight->cbv());
+//   }
 }
 
 bool runAO = true;
 void onInput() {
-  static float angle = 0.f;
-  static float distance = 15.f;
-  static float langle = 10.f;
-  static float ldistance = 15.f;
+  static float angle = -25.f;
+  static float distance = 50.f;
+  static float langle = -45.f;
+  static float ldistance = 547.8f;
   if(Input::Get().isKeyDown('W')) {
     distance -= .5f;
   }
@@ -381,10 +430,10 @@ void onInput() {
     distance += 0.5f;
   }
   if (Input::Get().isKeyDown(KEYBOARD_UP)) {
-    ldistance -= 0.5f;
+    ldistance -= 10.f;
   }
   if (Input::Get().isKeyDown(KEYBOARD_DOWN)) {
-    ldistance += 0.5f;
+    ldistance += 10.f;
   }
 
   if(Input::Get().isKeyDown(KEYBOARD_SPACE)) {
@@ -406,13 +455,10 @@ void onInput() {
   if (Input::Get().isKeyDown(KEYBOARD_RIGHT)) {
     langle += 1.f;
   }
-  vec3 position = fromSpherical(distance, angle, 30.f);
-  mCamera->lookAt(position, vec3::zero);
-  mLightTransform.setWorldTransform(mat44::lookAt(fromSpherical(ldistance, langle, 30.f), vec3::zero));
-  mLight.asSpotLight(mLightTransform.position(), mLightTransform.forward(), 30.f, 45.f, 3.f);
-
-  vec3 fwd = mCamera->forward();
-
+  vec3 position = SCENE_SCALE * vec3{ 278, 273, -800};
+  mCamera->lookAt(position, position + vec3::forward);
+  mLight.transform.localPosition() = SCENE_SCALE * vec3{ 278.f, ldistance, 227.f };
+  mLight.asPointLight(900.f, vec3{ 1.f, 0, 0.f }, vec3(16.86, 8.76 + 2., 3.2 + .5));
 };
 
 void computeTest() {
@@ -433,6 +479,7 @@ void render() {
 }
 
 void runFrame() {
+  GetMainClock().beginFrame();
   Input::Get().beforeFrame();
   onInput();
   render();
@@ -441,6 +488,7 @@ void runFrame() {
 }
 
 void Shutdown() {
+  delete sceneRenderer;
   mDevice->cleanup();
 
 }
