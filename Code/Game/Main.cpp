@@ -28,7 +28,7 @@
 #include "Engine/Framework/Light.hpp"
 
 #define UNUSED(x) (void)x
-static float SCENE_SCALE = .01f;
+static float SCENE_SCALE = .002f;
 static bool gQuit = false;
 void CALLBACK windowProc(uint wmMessageCode, size_t /*wParam*/, size_t lParam) {
   UNUSED(lParam);
@@ -103,9 +103,6 @@ S<RHIContext> mContext;
 // RootSignature::sptr_t rootSig;
 
 Camera* mCamera;
-Texture2::sptr_t texNormal;
-Texture2::sptr_t texScene;
-Texture2::sptr_t texNoise;
 //VertexBuffer::sptr_t vbo[4];
 //IndexBuffer::sptr_t ibo;
 
@@ -192,9 +189,8 @@ void Initialize() {
   genSSAOData();
   Window::Get()->addWinMessageHandler(windowProc);
   mCamera = new Camera();
-  mCamera->transfrom().localPosition() = { -1, -1, -1 };
-  mCamera->lookAt({ -0.278000f, 0.273000f, 0.799000f }, { -0.278000f, 0.273000f, 0.800000f });
-  mCamera->setProjectionPrespective(39.146252f, 3.f*CLIENT_ASPECT, 3.f, 0.100000f, 1500.000000f);
+  mCamera->lookAt({ 2, -2, -2 }, { -0.278000f, 0.273000f, 0.800000f });
+  mCamera->setProjectionPrespective(19.5, 3.f*CLIENT_ASPECT, 3.f, 0.100000f, 1500.000000f);
   
   mDevice = RHIDevice::get();
   mContext = mDevice->defaultRenderContext();
@@ -202,105 +198,61 @@ void Initialize() {
   renderer = &ImmediateRenderer::get();
   uint w = Window::Get()->bounds().width();
   uint h = (uint)Window::Get()->bounds().height();
-  texNormal = Texture2::create(
-      w, 
-      h, 
-      TEXTURE_FORMAT_RGBA8, 
-      RHIResource::BindingFlag::RenderTarget);
-
-  ssaoMap = Texture2::create(
-    w,
-    h,
-    TEXTURE_FORMAT_RGBA8,
-    RHIResource::BindingFlag::RenderTarget);
-
-  texScene = Texture2::create(
-    w,
-    h,
-    TEXTURE_FORMAT_RGBA8,
-    RHIResource::BindingFlag::RenderTarget | RHIResource::BindingFlag::UnorderedAccess);
 
   // main pass
   {
-    // FrameBuffer::Desc fDesc;
-    // fDesc.defineColorTarget(0, TEXTURE_FORMAT_RGBA8);
-    // fDesc.defineColorTarget(1, TEXTURE_FORMAT_RGBA8);
-    // fDesc.defineDepthTarget(TEXTURE_FORMAT_D24S8);
-    // frameBuffer = new FrameBuffer(fDesc);
-    // {
-    //   RootSignature::Desc desc;
-    //   RootSignature::desc_set_layout_t layout;
-    //   layout.addRange(DescriptorSet::Type::Cbv, 0, 2, 0);
-    //   layout.addRange(DescriptorSet::Type::TextureSrv, 0, 1, 0);
-    //   descriptorSet = DescriptorSet::create(mDevice->gpuDescriptorPool(), layout);
-    //   desc.addDescriptorSet(layout);
-    //   rootSig = RootSignature::create(desc);
-    // }
-    {
-      GraphicsState::Desc desc;
-
-      std::string shaderPath = "shaders.hlsl";
-      Program::sptr_t prog = Program::sptr_t(new Program());
-      prog->stage(SHADER_TYPE_VERTEX).setFromFile(shaderPath, "VSMain");
-      prog->stage(SHADER_TYPE_FRAGMENT).setFromFile(shaderPath, "PSMain");
-      prog->compile();
-      renderer->setProgram(prog);
-
-
-      // GraphicsState = prog->compile();
-    }
-
     Mesher ms;
 
     ms.begin(DRAW_TRIANGES, false);
     // ms.cube(vec3(30.f, 100.f, 0), vec3(200.f));
-    ms.color(vec4{ .5f, .5f, .5f, 1.f});
+    ms.color(vec4{ 0.725, 0.71, 0.68, 1.f});
     ms.quad(SCENE_SCALE * vec3{ 0.0f, 0.0f, 0.0f },
-            SCENE_SCALE * vec3{ 552.8f, 0.0f, 0.0f },
-            SCENE_SCALE * vec3{ 549.6f, 0.0f, 559.2f },
-            SCENE_SCALE * vec3{ 0.0f, 0.0f, 559.2f });  // floor
+            SCENE_SCALE * vec3{ 500.f, 0.0f, 0.0f },
+            SCENE_SCALE * vec3{ 500.f, 0.0f, 500.f },
+            SCENE_SCALE * vec3{ 0.0f, 0.0f, 500.f });  // floor
 
     ms.quad(
-            SCENE_SCALE * vec3{ 0.0f, 548.8f, 559.2f },
-            SCENE_SCALE * vec3{ 556.0f, 548.8f, 559.2f },
-            SCENE_SCALE * vec3{ 556.0f, 548.8f, 0.0f },
-            SCENE_SCALE * vec3{ 0.0f, 548.8f,   0.0f } );  // ceiling
+            SCENE_SCALE * vec3{ 0.0f, 500.f, 500.f },
+            SCENE_SCALE * vec3{ 500.f, 500.f, 500.f },
+            SCENE_SCALE * vec3{ 500.f, 500.f, 0.0f },
+            SCENE_SCALE * vec3{ 0.0f, 500.f,   0.0f } );  // ceiling
 
-    ms.quad(SCENE_SCALE * vec3{ 549.6f,   0.0f, 559.2f },
-            SCENE_SCALE * vec3{ 556.0f, 548.8f, 559.2f },
-            SCENE_SCALE * vec3{ 0.0f, 548.8f, 559.2f },
-            SCENE_SCALE * vec3{ 0.0f,   0.0f, 559.2f });  // back wall
+    ms.quad(SCENE_SCALE * vec3{ 500.f,   0.0f, 500.f },
+            SCENE_SCALE * vec3{ 500.f, 500.f, 500.f },
+            SCENE_SCALE * vec3{ 0.0f, 500.f, 500.f },
+            SCENE_SCALE * vec3{ 0.0f,   0.0f, 500.f });  // back wall
 
     // ms.quad(SCENE_SCALE * vec3{ 0.0f,   0.0f, 0.f },
     //         SCENE_SCALE * vec3{ 0.0f, 548.8f, 0.f },
     //         SCENE_SCALE * vec3{ 556.0f, 548.8f, 0.f },
     //         SCENE_SCALE * vec3{ 549.6f,   0.0f, 0.f });  // back wall
+    ms.color(vec4{ 0.725, 0.71, 0.68, 1.f });
 
     ms.cube(
-            SCENE_SCALE * (vec3{ 82.f, 0.f, 114.f } +vec3{ 188.f, 0, 0 }),
-            SCENE_SCALE * vec3{ 165.42369842317032f, 165.f, 165.13025161974412f },
+            SCENE_SCALE * (vec3{ 82.f, 0.f, 114.f } +vec3{ 160.f, 0, 0 }),
+            SCENE_SCALE * vec3{ 150.f, 145.f, 150.f },
             (vec3(240, 0, 65) - vec3(82, 0, 114)).normalized(),
             vec3::up,
             (vec3(130, 0, 272) - vec3(82, 0, 114)).normalized()); // short cube
-
+    
     ms.cube(
-            SCENE_SCALE * (vec3{ 265.f, 0, 406.f } +vec3{ -180.f, 0, 0 }),
-            SCENE_SCALE * vec3{ 166.37908522407497f, 330.f, 165.72265988693277f }, 
+            SCENE_SCALE * (vec3{ 265.f, 0, 406.f } +vec3{ -190.f, 0, -30.f }),
+            SCENE_SCALE * vec3{ 160.f, 300.f, 150.f }, 
             (vec3(314, 0, 247) - vec3(265.f, 0, 406.f)).normalized(),
             vec3::up,
             (vec3(423, 0, 456) - vec3(265.f, 0, 406.f)).normalized()); // tall cube
 
-    ms.color(Rgba(0, 255, 0));
-    ms.quad(SCENE_SCALE * vec3{ 552.8f,   0.0f,   0.0f },
-            SCENE_SCALE * vec3{ 556.0f, 548.8f,   0.0f },
-            SCENE_SCALE * vec3{ 556.0f, 548.8f, 559.2f },
-            SCENE_SCALE * vec3{ 549.6f,   0.0f, 559.2f });  // right wall
+    ms.color(vec4{ 0.14, 0.45, 0.091, 1.f }); // G
+    ms.quad(SCENE_SCALE * vec3{ 500.f,   0.0f,  0.0f },
+            SCENE_SCALE * vec3{ 500.f,  500.f,  0.0f },
+            SCENE_SCALE * vec3{ 500.f,  500.f, 500.f },
+            SCENE_SCALE * vec3{ 500.f,   0.0f, 500.f });  // right wall
 
 
-    ms.color(Rgba(255, 0, 0));
-    ms.quad(SCENE_SCALE * vec3{ 0.0f,   0.0f, 559.2f },
-            SCENE_SCALE * vec3{ 0.0f, 548.8f, 559.2f },
-            SCENE_SCALE * vec3{ 0.0f, 548.8f,   0.0f },
+    ms.color(vec4{ 0.63, 0.065, 0.05, 1.f }); // R
+    ms.quad(SCENE_SCALE * vec3{ 0.0f,   0.0f,  500.f },
+            SCENE_SCALE * vec3{ 0.0f,  500.f,  500.f },
+            SCENE_SCALE * vec3{ 0.0f,  500.f,   0.0f },
             SCENE_SCALE * vec3{ 0.0f,   0.0f,   0.0f });  // left wall
 
     // ms.quad(vec3(-30, 10, 0), -vec3::forward, vec3::up, vec2(20.f));
@@ -335,94 +287,29 @@ void Initialize() {
     defaultMaterial.setTexture(TEXTURE_DIFFUSE, mTexture);
 
     std::vector<Rgba> noise = genNoise(w, h);
-    texNoise = Texture2::create(w, h, TEXTURE_FORMAT_RGBA8,
-      RHIResource::BindingFlag::ShaderResource,
-      noise.data(), w * h * sizeof(Rgba));
-    // descriptorSet->setCbv(0, 0, *cVp->cbv());
-    // descriptorSet->setCbv(0, 1, *cLight->cbv());
-    // descriptorSet->setSrv(1, 0, texture->srv());
+    
     mContext->resourceBarrier(mTexture.get(), RHIResource::State::ShaderResource);
 
     scene.add(meshRenderable);
     scene.set(*mCamera);
     scene.add(mLight);
   }
+  vec3 position = SCENE_SCALE * vec3{ 250, 250, -1500 };
+  mCamera->lookAt(position, position + vec3::forward);
 
-  // SSAO resource
-  // {
-  //   FrameBuffer::Desc fDesc;
-  //   fDesc.defineColorTarget(0, TEXTURE_FORMAT_RGBA8);
-  //   fDesc.defineColorTarget(1, TEXTURE_FORMAT_RGBA8);
-  //   ssaoFrameBuffer = new FrameBuffer(fDesc);
-  //   {
-  //     RootSignature::Desc desc;
-  //     RootSignature::desc_set_layout_t layout;
-  //     layout.addRange(DescriptorSet::Type::Cbv, 0, 2);
-  //     layout.addRange(DescriptorSet::Type::TextureSrv, 0, 4);
-  //     ssaoDescriptorSet = DescriptorSet::create(mDevice->gpuDescriptorPool(), layout);
-  //     desc.addDescriptorSet(layout);
-  //     ssaoRootSig = RootSignature::create(desc);
-  //   }
-  //   {
-  //     GraphicsState::Desc desc;
-  //
-  //     std::string shaderPath = "ssao.hlsl";
-  //     Program::sptr_t prog = Program::sptr_t(new Program());
-  //     prog->stage(SHADER_TYPE_VERTEX).setFromFile(shaderPath, "VSMain");
-  //     prog->stage(SHADER_TYPE_FRAGMENT).setFromFile(shaderPath, "PSMain");
-  //     prog->compile();
-  //     desc.setProgram(prog);
-  //
-  //     desc.setRootSignature(ssaoRootSig);
-  //     desc.setPrimTye(GraphicsState::PrimitiveType::Triangle);
-  //     desc.setVertexLayout(VertexLayout::For<vertex_lit_t>());
-  //     desc.setFboDesc(fDesc);
-  //     ssaoGraphicsState = GraphicsState::create(desc);
-  //   }
-  //
-  //   cSSAOParams = RHIBuffer::create(sizeof(ssao_param_t), RHIResource::BindingFlag::ConstantBuffer, RHIBuffer::CPUAccess::Write, &mSSAOParam);
-  //   ssaoParamCbv = ConstantBufferView::create(cSSAOParams);
-  //   ssaoDescriptorSet->setCbv(0, 0, *vpCbv);
-  //   ssaoDescriptorSet->setCbv(0, 1, *ssaoParamCbv);
-  //   ssaoDescriptorSet->setSrv(1, 1, texNormal->srv());
-  //   ssaoDescriptorSet->setSrv(1, 2, texScene->srv());
-  //   ssaoDescriptorSet->setSrv(1, 3, texNoise->srv());
-  // }
-
-  // compute
-//   {
-//     {
-//       RootSignature::Desc desc;
-//       RootSignature::desc_set_layout_t layout;
-//       layout.addRange(DescriptorSet::Type::TextureUav, 0, 2);
-//       layout.addRange(DescriptorSet::Type::Cbv, 0, 2);
-//       computeDescriptorSet = DescriptorSet::create(mDevice->gpuDescriptorPool(), layout);
-//       desc.addDescriptorSet(layout);
-//       computeRootSig = RootSignature::create(desc);
-//     }
-//     {
-//       ComputeState::Desc desc;
-//       Program::sptr_t prog = Program::sptr_t(new Program());
-//       desc.setRootSignature(computeRootSig);
-//       prog->stage(SHADER_TYPE_COMPUTE).setFromFile("compute.hlsl", "main");
-//       prog->compile();
-//       desc.setProgram(prog);
-//       computePipelineState = ComputeState::create(desc);
-//     }
-//
-//     computeDescriptorSet->setUav(0, 0, *texScene->uav());
-//     computeDescriptorSet->setUav(0, 1, *computeVerts->uav());
-//     computeDescriptorSet->setCbv(1, 0, *cVp->cbv());
-//     // computeDescriptorSet->setCbv(1, 1, *cLight->cbv());
-//   }
 }
 
 bool runAO = true;
 void onInput() {
-  static float angle = -25.f;
-  static float distance = 50.f;
+
+  Window::Get()->setTitle(Stringf("Tanki - Hybird Renderer. Frame time: %.0f ms", 
+                                  float(GetMainClock().frame.second * 1000.0)).c_str());
+
+  float shift = 0;
+  float distance = 0;
   static float langle = -45.f;
-  static float ldistance = 547.8f;
+  static float ldistance = 497.8f;
+  static float lx = 250.f;
   if(Input::Get().isKeyDown('W')) {
     distance -= .5f;
   }
@@ -436,42 +323,32 @@ void onInput() {
     ldistance += 10.f;
   }
 
-  if(Input::Get().isKeyDown(KEYBOARD_SPACE)) {
-    runAO = false;
-  } else {
-    runAO = true;
-  }
-  distance = std::max(.1f, distance);
-  ldistance = std::max(.1f, ldistance);
+  runAO = !Input::Get().isKeyDown(KEYBOARD_SPACE);
+
+  // distance = std::max(.1f, distance);
+  // ldistance = std::max(.1f, ldistance);
   if(Input::Get().isKeyDown('A')) {
-    angle -= 1.f;
+    shift -= 1.f;
   }
   if (Input::Get().isKeyDown('D')) {
-    angle += 1.f;
+    shift += 1.f;
   }
   if (Input::Get().isKeyDown(KEYBOARD_LEFT)) {
-    langle -= 1.f;
+    lx -= 10.f;
   }
   if (Input::Get().isKeyDown(KEYBOARD_RIGHT)) {
-    langle += 1.f;
+    lx += 10.f;
   }
-  vec3 position = SCENE_SCALE * vec3{ 278, 273, -800};
-  mCamera->lookAt(position, position + vec3::forward);
-  mLight.transform.localPosition() = SCENE_SCALE * vec3{ 278.f, ldistance, 227.f };
-  mLight.asPointLight(900.f, vec3{ 1.f, 0, 0.f }, vec3(16.86, 8.76 + 2., 3.2 + .5));
+
+  vec2 rotation = Input::Get().mouseDeltaPosition(true) * 90.f;
+
+  mCamera->translate(mCamera->forward() * distance + mCamera->right() * shift);
+  // mCamera->rotate({ rotation.y, rotation.x, 0 });
+  // vec3 position = SCENE_SCALE * vec3{ 278, 273, -800};
+  // mCamera->lookAt(position, position + vec3::forward);
+  mLight.transform.localPosition() = SCENE_SCALE * vec3{ lx, ldistance, 250.f };
+  mLight.asPointLight(1.f, vec3{ 1.f, 0, 0.f }, vec3(1.f, 1.f, 1.f));
 };
-
-void computeTest() {
-  GPU_FUNCTION_EVENT();
-  mContext->resourceBarrier(texScene.get(), RHIResource::State::UnorderedAccess);
-  mContext->setComputeState(*computePipelineState);
-  computeDescriptorSet->bindForCompute(*mContext, *computeRootSig);
-
-  uint x = uint(Window::Get()->bounds().width()) / 32 + 1;
-  uint y = uint(Window::Get()->bounds().height()) / 32 + 1;
-  mContext->dispatch(x, y, 1);
-
-}
 
 void render() {
   sceneRenderer->onRenderFrame(*mContext);
