@@ -13,9 +13,10 @@ public class CursorControl : MonoBehaviour {
 	public GameObject Integration;
 	public float SpawnSampleInterval;
 	
+	private float timeSinceLastMovement = 0f;
 	void Start () {
 	}
-	
+
 	float sampleRange = 0;
 	// Update is called once per frame
 
@@ -26,9 +27,18 @@ public class CursorControl : MonoBehaviour {
 	public float center() {
 		return transform.position.y;
 	}
-	
+
+	public bool isMoving() {
+		return timeSinceLastMovement < 2f;
+	}
 	void Update () {
 		float vertical = Input.GetAxis("Vertical");
+		if (vertical > 0) {
+			timeSinceLastMovement = 0f;
+		}
+		else {
+			timeSinceLastMovement += Time.deltaTime;
+		}
 		transform.Translate(0, ShiftSpeed * vertical * Time.deltaTime, 0);
 
 		float horizontal = Input.GetAxis("Horizontal");
