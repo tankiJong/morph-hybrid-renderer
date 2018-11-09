@@ -26,6 +26,8 @@
 #include "Engine/Renderer/Renderable/Renderable.hpp"
 #include "Engine/Graphics/Program/Material.hpp"
 #include "Engine/Framework/Light.hpp"
+#include "Engine/Gui/ImGui.hpp"
+#include "Game/CameraController.hpp"
 
 #define UNUSED(x) (void)x
 static float SCENE_SCALE = .002f;
@@ -103,6 +105,7 @@ S<RHIContext> mContext;
 // RootSignature::sptr_t rootSig;
 
 Camera* mCamera;
+CameraController* cameraController;
 //VertexBuffer::sptr_t vbo[4];
 //IndexBuffer::sptr_t ibo;
 
@@ -205,22 +208,6 @@ void Initialize() {
 
     ms.begin(DRAW_TRIANGES, false);
     // ms.cube(vec3(30.f, 100.f, 0), vec3(200.f));
-    ms.color(vec4{ 0.725, 0.71, 0.68, 1.f});
-    ms.quad(SCENE_SCALE * vec3{ 0.0f, 0.0f, 0.0f },
-            SCENE_SCALE * vec3{ 500.f, 0.0f, 0.0f },
-            SCENE_SCALE * vec3{ 500.f, 0.0f, 500.f },
-            SCENE_SCALE * vec3{ 0.0f, 0.0f, 500.f });  // floor
-
-    ms.quad(
-            SCENE_SCALE * vec3{ 0.0f, 500.f, 500.f },
-            SCENE_SCALE * vec3{ 500.f, 500.f, 500.f },
-            SCENE_SCALE * vec3{ 500.f, 500.f, 0.0f },
-            SCENE_SCALE * vec3{ 0.0f, 500.f,   0.0f } );  // ceiling
-
-    ms.quad(SCENE_SCALE * vec3{ 500.f,   0.0f, 500.f },
-            SCENE_SCALE * vec3{ 500.f, 500.f, 500.f },
-            SCENE_SCALE * vec3{ 0.0f, 500.f, 500.f },
-            SCENE_SCALE * vec3{ 0.0f,   0.0f, 500.f });  // back wall
 
     // ms.quad(SCENE_SCALE * vec3{ 0.0f,   0.0f, 0.f },
     //         SCENE_SCALE * vec3{ 0.0f, 548.8f, 0.f },
@@ -242,6 +229,22 @@ void Initialize() {
             vec3::up,
             (vec3(423, 0, 456) - vec3(265.f, 0, 406.f)).normalized()); // tall cube
 
+    ms.color(vec4{ 0.725, 0.71, 0.68, 1.f});
+    ms.quad(SCENE_SCALE * vec3{ 0.0f, 0.0f, 0.0f },
+            SCENE_SCALE * vec3{ 500.f, 0.0f, 0.0f },
+            SCENE_SCALE * vec3{ 500.f, 0.0f, 500.f },
+            SCENE_SCALE * vec3{ 0.0f, 0.0f, 500.f });  // floor
+
+    ms.quad(SCENE_SCALE * vec3{ 500.f,   0.0f, 500.f },
+            SCENE_SCALE * vec3{ 500.f, 500.f, 500.f },
+            SCENE_SCALE * vec3{ 0.0f, 500.f, 500.f },
+            SCENE_SCALE * vec3{ 0.0f,   0.0f, 500.f });  // back wall
+
+    ms.quad(
+            SCENE_SCALE * vec3{ 0.0f, 500.f, 500.f },
+            SCENE_SCALE * vec3{ 500.f, 500.f, 500.f },
+            SCENE_SCALE * vec3{ 500.f, 500.f, 0.0f },
+            SCENE_SCALE * vec3{ 0.0f, 500.f,   0.0f } );  // ceiling
     ms.color(vec4{ 0.14, 0.45, 0.091, 1.f }); // G
     ms.quad(SCENE_SCALE * vec3{ 500.f,   0.0f,  0.0f },
             SCENE_SCALE * vec3{ 500.f,  500.f,  0.0f },
@@ -288,7 +291,7 @@ void Initialize() {
 
     std::vector<Rgba> noise = genNoise(w, h);
     
-    mContext->resourceBarrier(mTexture.get(), RHIResource::State::ShaderResource);
+    mContext->transitionBarrier(mTexture.get(), RHIResource::State::ShaderResource);
 
     scene.add(meshRenderable);
     scene.set(*mCamera);
@@ -297,67 +300,102 @@ void Initialize() {
   vec3 position = SCENE_SCALE * vec3{ 250, 250, -1500 };
   mCamera->lookAt(position, position + vec3::forward);
 
+  cameraController = new CameraController(*mCamera);
+  cameraController->speedScale(1);
+  mLight.transform.localPosition() = SCENE_SCALE * vec3{ 250.f, 497.8f, 250.f };
+
 }
 
 bool runAO = true;
 void onInput() {
+  float dt = GetMainClock().frame.second;
 
+  static float frameAvgSec = 0.f;
+  frameAvgSec = frameAvgSec * .95 + GetMainClock().frame.second * .05;
   Window::Get()->setTitle(Stringf("Tanki - Hybird Renderer. Frame time: %.0f ms", 
-                                  float(GetMainClock().frame.second * 1000.0)).c_str());
+                                  float(frameAvgSec * 1000.0)).c_str());
+  cameraController->onInput();
+  cameraController->onUpdate(dt);
+  // float shift = 0;
+  // float distance = 0;
+  //
+  // if(Input::Get().isKeyDown('W')) {
+  //   distance -= 1.f * dt;
+  // }
+  // if (Input::Get().isKeyDown('S')) {
+  //   distance += 1.f * dt;
+  // }
+  //
+  //
+  // runAO = !Input::Get().isKeyDown(KEYBOARD_SPACE);
+  //
+  // // distance = std::max(.1f, distance);
+  // // ldistance = std::max(.1f, ldistance);
+  // if(Input::Get().isKeyDown('A')) {
+  //   shift -= 1.f * dt;
+  // }
+  // if (Input::Get().isKeyDown('D')) {
+  //   shift += 1.f * dt;
+  // }
 
-  float shift = 0;
-  float distance = 0;
-  static float langle = -45.f;
-  static float ldistance = 497.8f;
-  static float lx = 250.f;
-  if(Input::Get().isKeyDown('W')) {
-    distance -= .5f;
-  }
-  if (Input::Get().isKeyDown('S')) {
-    distance += 0.5f;
-  }
-  if (Input::Get().isKeyDown(KEYBOARD_UP)) {
-    ldistance -= 10.f;
-  }
-  if (Input::Get().isKeyDown(KEYBOARD_DOWN)) {
-    ldistance += 10.f;
-  }
-
-  runAO = !Input::Get().isKeyDown(KEYBOARD_SPACE);
-
-  // distance = std::max(.1f, distance);
-  // ldistance = std::max(.1f, ldistance);
-  if(Input::Get().isKeyDown('A')) {
-    shift -= 1.f;
-  }
-  if (Input::Get().isKeyDown('D')) {
-    shift += 1.f;
-  }
-  if (Input::Get().isKeyDown(KEYBOARD_LEFT)) {
-    lx -= 10.f;
-  }
-  if (Input::Get().isKeyDown(KEYBOARD_RIGHT)) {
-    lx += 10.f;
+    vec2 rotation = vec2::zero; 
+  if (Input::Get().isKeyDown(MOUSE_RBUTTON)) {
+    rotation = Input::Get().mouseDeltaPosition(true) * 180.f * dt;
   }
 
-  vec2 rotation = Input::Get().mouseDeltaPosition(true) * 90.f;
-
-  mCamera->translate(mCamera->forward() * distance + mCamera->right() * shift);
+  // mCamera->translate(-mCamera->forward() * distance + mCamera->right() * shift);
   // mCamera->rotate({ rotation.y, rotation.x, 0 });
   // vec3 position = SCENE_SCALE * vec3{ 278, 273, -800};
-  // mCamera->lookAt(position, position + vec3::forward);
-  mLight.transform.localPosition() = SCENE_SCALE * vec3{ lx, ldistance, 250.f };
-  mLight.asPointLight(1.f, vec3{ 1.f, 0, 0.f }, vec3(1.f, 1.f, 1.f));
+  // mCamera->lookAt(mCamera->transfrom().localPosition(), vec3::one * .5f);
+  static bool toggle = false;
+
+  if (Input::Get().isKeyDown('Z')) {
+    toggle = !toggle;
+  }
+
+  static float intensity = 5.f;
+  static vec3 color = vec3::one;
+  {
+    ImGui::Begin("Light Control");
+    ImGui::SliderFloat("Light Intensity", &intensity, 0, 100);
+    ImGui::SliderFloat3("Light color", (float*)&color, 0, 1);
+    ImGui::End();
+    float scale = cameraController->speedScale();
+    ImGui::Begin("Camera Control");
+    ImGui::SliderFloat("Camera speed", &scale, 0, 10);
+    ImGui::End();
+    cameraController->speedScale(scale);
+  }
+
+
+  ImGui::gizmos(*mCamera, mLight.transform, ImGuizmo::TRANSLATE);
+  // ImGui::gizmos(*mCamera, transform, ImGuizmo::TRANSLATE);
+  // {
+  //   mat44 view = mCamera->view();
+  //   mat44 proj = mCamera->projection();
+  //
+  //   mat44 mat = mLight.transform.localToWorld();
+  //   ImGuizmo::SetOrthographic(false);
+  //   ImGuizmo::Manipulate((float*)&view, (float*)&proj, ImGuizmo::TRANSLATE, ImGuizmo::WORLD, (float*)&mat);
+  //
+  //   mLight.transform.setWorldTransform(mat);
+  // }
+  mLight.asPointLight(intensity, vec3{ 2.f, 0, 0.f }, color);
 };
 
 void render() {
   sceneRenderer->onRenderFrame(*mContext);
+
+  static bool show = true;
+  // ImGui::ShowDemoWindow(&show);
+  ImGui::render();
   mDevice->present();
 }
 
 void runFrame() {
   GetMainClock().beginFrame();
   Input::Get().beforeFrame();
+  ImGui::beginFrame();
   onInput();
   render();
   Input::Get().afterFrame();
@@ -377,11 +415,6 @@ int __stdcall WinMain(HINSTANCE, HINSTANCE, LPSTR commandLineString, int) {
 
   // Program main loop; keep running frames until it's time to quit
   while (!gQuit) {
-    MSG message;
-    while (PeekMessage(&message, mDevice->mWindow, 0, 0, PM_REMOVE)) {
-      TranslateMessage(&message);
-      DispatchMessage(&message);
-    }
     runFrame();
   }
 

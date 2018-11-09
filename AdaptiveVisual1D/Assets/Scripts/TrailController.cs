@@ -167,7 +167,7 @@ public class TrailController : MonoBehaviour {
 
 		switch (method) {
 			case CONVERAGE_METHOD.EXPONENTIAL_MOVING_AVERAGE:
-				position.y = exponentialMovingAverage(position.y, buffer.average());
+				position.y = exponentialMovingAverage(position.y, val, .01f);
 				break;
 			case CONVERAGE_METHOD.MOVING_AVERAGE:
 				position.y = movingAverage(buffer.average());
@@ -179,12 +179,12 @@ public class TrailController : MonoBehaviour {
 				}
 
 				if (varianceBuffer.range() != 0) {
-					WeightCurve.setSmooth( 1 - Mathf.Abs(varianceBuffer.variance() / varianceBuffer.range()) );
+					// WeightCurve.setSmooth( 1 - Mathf.Abs(varianceBuffer.variance() / varianceBuffer.range()) );
 					WeightCurve.setScale( Mathf.Abs(varianceBuffer.variance() / varianceBuffer.range()) );
 				}
 //				if ((context.isMoving() && AccountLightMovemt) || varianceBuffer.variance() > .1f) {
 //				position.y = exponentialMovingAverage(position.y, buffer.weightedAverage(WeightCurve));
-				position.y = adaptiveAverage(position.y, buffer.weightedAverage(WeightCurve), varianceBuffer.variance() / varianceBuffer.range());
+				position.y = adaptiveAverage(position.y, buffer.weightedAverage(WeightCurve), buffer.variance() / buffer.range());
 				// position.y = buffer.weightedAverage(WeightCurve);
 //				}
 //				else {
@@ -200,8 +200,8 @@ public class TrailController : MonoBehaviour {
 		transform.position = position;
 	}
 
-	float exponentialMovingAverage(float original, float average, float factor = .1f) {
-		return original * (1 - factor) + average * factor;
+	float exponentialMovingAverage(float original, float data, float factor = .1f) {
+		return original * (1 - factor) + data * factor;
 	}
 	
 	float movingAverage(float average) {

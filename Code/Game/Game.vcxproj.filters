@@ -19,6 +19,9 @@
     <ClCompile Include="Main.cpp">
       <Filter>General</Filter>
     </ClCompile>
+    <ClCompile Include="CameraController.cpp">
+      <Filter>General</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\..\ReadMe.txt" />
@@ -28,6 +31,9 @@
       <Filter>General</Filter>
     </ClInclude>
     <ClInclude Include="EngineBuildPreferences.hpp" />
+    <ClInclude Include="CameraController.hpp">
+      <Filter>General</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="shaders.hlsl" />

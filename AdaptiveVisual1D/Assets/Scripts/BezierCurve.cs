@@ -81,7 +81,7 @@ public class BezierCurve : MonoBehaviour {
         var re = Vector3.Lerp(d, e, t);
 
         re.y = Mathf.Pow(re.y, scale);
-
+        re.x = t;
         return re;
     }
 

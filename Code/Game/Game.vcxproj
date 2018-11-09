@@ -39,7 +39,7 @@
     <ProjectGuid>{F5B89BA1-9CB4-4235-8847-2E90C319E500}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>hybridRenderer</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
     <ProjectName>HybridRenderer</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -612,6 +612,7 @@ exit/B %errlev%</Command>
     </CustomBuild>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="CameraController.cpp" />
     <ClCompile Include="GameCommon.cpp" />
     <ClCompile Include="Main.cpp" />
   </ItemGroup>
@@ -624,6 +625,7 @@ exit/B %errlev%</Command>
     <Text Include="..\..\ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="CameraController.hpp" />
     <ClInclude Include="EngineBuildPreferences.hpp" />
     <ClInclude Include="GameCommon.hpp" />
   </ItemGroup>
