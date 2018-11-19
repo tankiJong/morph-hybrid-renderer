@@ -44,6 +44,7 @@
 #*.png   binary
 #*.gif   binary
 *.obj binary
+*.obj diff=binary
 
 ###############################################################################
 # diff behavior for common document formats
