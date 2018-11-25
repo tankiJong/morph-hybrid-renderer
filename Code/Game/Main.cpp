@@ -1,12 +1,10 @@
 #define WIN32_LEAN_AND_MEAN		// Always #define this before #including <windows.h>
 #include <Windows.h>
 
-
 #include "Engine/Core/type.h"
 #include "Engine/File/Utils.hpp"
 #include "Engine/Graphics/RHI/RHIDevice.hpp"
 #include "Engine/Graphics/RHI/RootSignature.hpp"
-#include "Engine/Graphics/RHI/PipelineState.hpp"
 #include "Engine/Core/Time/Clock.hpp"
 #include "Engine/Graphics/Model/Vertex.hpp"
 #include "Engine/Graphics/Camera.hpp"
@@ -19,15 +17,15 @@
 #include "Engine/Graphics/Program/Material.hpp"
 #include "Engine/Framework/Light.hpp"
 #include "Engine/Gui/ImGui.hpp"
-#include "Game/CameraController.hpp"
 #include "Engine/File/FileSystem.hpp"
 #include "Engine/Application/Application.hpp"
 #include "Engine/Debug/Draw.hpp"
+#include "Game/CameraController.hpp"
+#include "Engine/Graphics/Model/BVH.hpp"
 
 #define SCENE_BUNNY
 // #define SCENE_1
 // #define SCENE_BOX
-#define UNUSED(x) (void)x
 static float SCENE_SCALE = .002f;
 
 // -------------------------  constant ------------------------------
@@ -69,11 +67,13 @@ protected:
   S<RHIContext> mContext;
   RenderScene scene{};
   Renderable meshRenderable{};
+
+  BVH* mBvh;
 };
 
 void GameApplication::onInit() {
   sceneRenderer = new SceneRenderer(scene);
-  sceneRenderer->onLoad(*mContext);
+
 
   mCamera = new Camera();
   mCamera->lookAt({ 2, -2, -2 }, { -0.278000f, 0.273000f, 0.800000f });
@@ -93,33 +93,33 @@ void GameApplication::onInit() {
 #ifdef SCENE_BUNNY
     ms.obj("/Data/model/bunny.obj");
     ms.color(vec4{ 0.725, 0.71, 0.68, 1.f });
-    ms.quad(SCENE_SCALE * vec3{ 0.0f, 0.0f, 0.0f },
-            SCENE_SCALE * vec3{ 500.f, 0.0f, 0.0f },
-            SCENE_SCALE * vec3{ 500.f, 0.0f, 500.f },
-            SCENE_SCALE * vec3{ 0.0f, 0.0f, 500.f });  // floor
-
-    ms.quad(SCENE_SCALE * vec3{ 500.f,   0.0f, 500.f },
-            SCENE_SCALE * vec3{ 500.f, 500.f, 500.f },
-            SCENE_SCALE * vec3{ 0.0f, 500.f, 500.f },
-            SCENE_SCALE * vec3{ 0.0f,   0.0f, 500.f });  // back wall
-
-    ms.quad(
-      SCENE_SCALE * vec3{ 0.0f, 500.f, 500.f },
-      SCENE_SCALE * vec3{ 500.f, 500.f, 500.f },
-      SCENE_SCALE * vec3{ 500.f, 500.f, 0.0f },
-      SCENE_SCALE * vec3{ 0.0f, 500.f,   0.0f });  // ceiling
-    ms.color(vec4{ 0.14, 0.45, 0.091, 1.f }); // G
-    ms.quad(SCENE_SCALE * vec3{ 500.f,   0.0f,  0.0f },
-            SCENE_SCALE * vec3{ 500.f,  500.f,  0.0f },
-            SCENE_SCALE * vec3{ 500.f,  500.f, 500.f },
-            SCENE_SCALE * vec3{ 500.f,   0.0f, 500.f });  // right wall
-
-
-    ms.color(vec4{ 0.63, 0.065, 0.05, 1.f }); // R
-    ms.quad(SCENE_SCALE * vec3{ 0.0f,   0.0f,  500.f },
-            SCENE_SCALE * vec3{ 0.0f,  500.f,  500.f },
-            SCENE_SCALE * vec3{ 0.0f,  500.f,   0.0f },
-            SCENE_SCALE * vec3{ 0.0f,   0.0f,   0.0f });  // left wall
+    // ms.quad(SCENE_SCALE * vec3{ 0.0f, 0.0f, 0.0f },
+    //         SCENE_SCALE * vec3{ 500.f, 0.0f, 0.0f },
+    //         SCENE_SCALE * vec3{ 500.f, 0.0f, 500.f },
+    //         SCENE_SCALE * vec3{ 0.0f, 0.0f, 500.f });  // floor
+    //
+    // ms.quad(SCENE_SCALE * vec3{ 500.f,   0.0f, 500.f },
+    //         SCENE_SCALE * vec3{ 500.f, 500.f, 500.f },
+    //         SCENE_SCALE * vec3{ 0.0f, 500.f, 500.f },
+    //         SCENE_SCALE * vec3{ 0.0f,   0.0f, 500.f });  // back wall
+    //
+    // ms.quad(
+    //   SCENE_SCALE * vec3{ 0.0f, 500.f, 500.f },
+    //   SCENE_SCALE * vec3{ 500.f, 500.f, 500.f },
+    //   SCENE_SCALE * vec3{ 500.f, 500.f, 0.0f },
+    //   SCENE_SCALE * vec3{ 0.0f, 500.f,   0.0f });  // ceiling
+    // ms.color(vec4{ 0.14, 0.45, 0.091, 1.f }); // G
+    // ms.quad(SCENE_SCALE * vec3{ 500.f,   0.0f,  0.0f },
+    //         SCENE_SCALE * vec3{ 500.f,  500.f,  0.0f },
+    //         SCENE_SCALE * vec3{ 500.f,  500.f, 500.f },
+    //         SCENE_SCALE * vec3{ 500.f,   0.0f, 500.f });  // right wall
+    //
+    //
+    // ms.color(vec4{ 0.63, 0.065, 0.05, 1.f }); // R
+    // ms.quad(SCENE_SCALE * vec3{ 0.0f,   0.0f,  500.f },
+    //         SCENE_SCALE * vec3{ 0.0f,  500.f,  500.f },
+    //         SCENE_SCALE * vec3{ 0.0f,  500.f,   0.0f },
+    //         SCENE_SCALE * vec3{ 0.0f,   0.0f,   0.0f });  // left wall
 #endif
 #ifdef SCENE_BOX
     // ms.cube(vec3(30.f, 100.f, 0), vec3(200.f));
@@ -253,6 +253,7 @@ void GameApplication::onInit() {
 
     // buildMeshDataForCompute(ms);
 
+    mBvh = ms.createBVH(15);
     mesh = ms.createMesh<vertex_lit_t>();
     meshRenderable.mesh() = mesh;
     meshRenderable.transform() = new Transform();
@@ -265,6 +266,7 @@ void GameApplication::onInit() {
 
     scene.add(meshRenderable);
     scene.set(*mCamera);
+    scene.set(mBvh);
     scene.add(mLight);
   }
 
@@ -281,6 +283,11 @@ void GameApplication::onInit() {
   cameraController->speedScale(1);
   mLight.transform.localPosition() = SCENE_SCALE * vec3{ 250.f, 497.8f, 250.f };
 
+  Debug::setCamera(mCamera);
+  // Debug::setDepth(Debug::DEBUG_DEPTH_DISABLE);
+  Debug::setDepth(Debug::DEBUG_DEPTH_ENABLE);
+  // mBvh->render();
+  sceneRenderer->onLoad(*mContext);
 }
 
 void GameApplication::onInput() {
@@ -322,21 +329,7 @@ void GameApplication::onRender() const {
 }
 
 void GameApplication::onStartFrame() {
-  Debug::setCamera(mCamera);
-  Debug::setDepth(Debug::DEBUG_DEPTH_DISABLE);
 
-  Debug::drawCube(vec3::one * .2f, vec3::one * .2f, false, 0, Rgba(255, 255, 255, 20));
-  Debug::drawCube(vec3::one * .2f, vec3::one * .1f, false, 0, Rgba(255, 255, 255, 20));
-  Debug::drawCube(vec3::one * .2f, vec3::one * .1f, false, 0, Rgba(255, 255, 255, 20));
-  Debug::drawCube(vec3::one * .2f, vec3::one * .1f, false, 0, Rgba(255, 255, 255, 20));
-  Debug::drawCube(vec3::one * .2f, vec3::one * .1f, false, 0, Rgba(255, 255, 255, 20));
-  Debug::drawCone(vec3::zero, vec3::one.normalized(), .5f, 20.f, 10, 0, false);
-  //
-  // Debug::setDepth(Debug::DEBUG_DEPTH_DISABLE);
-  //
-  // Debug::drawCube(vec3::one * .2f, vec3::one * .2f, true, 0, Rgba(255, 255, 255, 20));
-  // Debug::drawCube(vec3::one * .2f, vec3::one * .1f, true, 0, Rgba(255, 255, 255, 20));
-  // Debug::drawCone(vec3::zero, vec3::one.normalized(), .5f, 20.f, 10, 0, true);
 }
 
 void GameApplication::onDestroy() {
