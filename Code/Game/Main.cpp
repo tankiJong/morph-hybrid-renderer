@@ -22,6 +22,9 @@
 #include "Engine/Debug/Draw.hpp"
 #include "Game/CameraController.hpp"
 #include "Engine/Graphics/Model/BVH.hpp"
+#include "Engine/Event/EventEmitter.hpp"
+#include "Engine/Debug/Log.hpp"
+#include "Game/GameCommon.hpp"
 
 #define SCENE_BUNNY
 // #define SCENE_1
@@ -58,6 +61,9 @@ public:
 
   void onDestroy() override;
 
+  float foo(float a, float b) {
+    return a + b;
+  }
 protected:
   Camera* mCamera = nullptr;
   CameraController* cameraController = nullptr;
@@ -69,11 +75,13 @@ protected:
   Renderable meshRenderable{};
 
   BVH* mBvh;
+
+  EventEmitter mEmitter;
 };
+
 
 void GameApplication::onInit() {
   sceneRenderer = new SceneRenderer(scene);
-
 
   mCamera = new Camera();
   mCamera->lookAt({ 2, -2, -2 }, { -0.278000f, 0.273000f, 0.800000f });
@@ -91,35 +99,35 @@ void GameApplication::onInit() {
     ms.begin(DRAW_TRIANGES, false);
 
 #ifdef SCENE_BUNNY
-    ms.obj("/Data/model/bunny.obj");
+    ms.obj("/Data/model/bunny2.obj");
     ms.color(vec4{ 0.725, 0.71, 0.68, 1.f });
-    // ms.quad(SCENE_SCALE * vec3{ 0.0f, 0.0f, 0.0f },
-    //         SCENE_SCALE * vec3{ 500.f, 0.0f, 0.0f },
-    //         SCENE_SCALE * vec3{ 500.f, 0.0f, 500.f },
-    //         SCENE_SCALE * vec3{ 0.0f, 0.0f, 500.f });  // floor
-    //
-    // ms.quad(SCENE_SCALE * vec3{ 500.f,   0.0f, 500.f },
-    //         SCENE_SCALE * vec3{ 500.f, 500.f, 500.f },
-    //         SCENE_SCALE * vec3{ 0.0f, 500.f, 500.f },
-    //         SCENE_SCALE * vec3{ 0.0f,   0.0f, 500.f });  // back wall
-    //
-    // ms.quad(
-    //   SCENE_SCALE * vec3{ 0.0f, 500.f, 500.f },
-    //   SCENE_SCALE * vec3{ 500.f, 500.f, 500.f },
-    //   SCENE_SCALE * vec3{ 500.f, 500.f, 0.0f },
-    //   SCENE_SCALE * vec3{ 0.0f, 500.f,   0.0f });  // ceiling
-    // ms.color(vec4{ 0.14, 0.45, 0.091, 1.f }); // G
-    // ms.quad(SCENE_SCALE * vec3{ 500.f,   0.0f,  0.0f },
-    //         SCENE_SCALE * vec3{ 500.f,  500.f,  0.0f },
-    //         SCENE_SCALE * vec3{ 500.f,  500.f, 500.f },
-    //         SCENE_SCALE * vec3{ 500.f,   0.0f, 500.f });  // right wall
-    //
-    //
-    // ms.color(vec4{ 0.63, 0.065, 0.05, 1.f }); // R
-    // ms.quad(SCENE_SCALE * vec3{ 0.0f,   0.0f,  500.f },
-    //         SCENE_SCALE * vec3{ 0.0f,  500.f,  500.f },
-    //         SCENE_SCALE * vec3{ 0.0f,  500.f,   0.0f },
-    //         SCENE_SCALE * vec3{ 0.0f,   0.0f,   0.0f });  // left wall
+    ms.quad(SCENE_SCALE * vec3{ 0.0f, 0.0f, 0.0f },
+            SCENE_SCALE * vec3{ 500.f, 0.0f, 0.0f },
+            SCENE_SCALE * vec3{ 500.f, 0.0f, 500.f },
+            SCENE_SCALE * vec3{ 0.0f, 0.0f, 500.f });  // floor
+    
+    ms.quad(SCENE_SCALE * vec3{ 500.f,   0.0f, 500.f },
+            SCENE_SCALE * vec3{ 500.f, 500.f, 500.f },
+            SCENE_SCALE * vec3{ 0.0f, 500.f, 500.f },
+            SCENE_SCALE * vec3{ 0.0f,   0.0f, 500.f });  // back wall
+    
+    ms.quad(
+      SCENE_SCALE * vec3{ 0.0f, 500.f, 500.f },
+      SCENE_SCALE * vec3{ 500.f, 500.f, 500.f },
+      SCENE_SCALE * vec3{ 500.f, 500.f, 0.0f },
+      SCENE_SCALE * vec3{ 0.0f, 500.f,   0.0f });  // ceiling
+    ms.color(vec4{ 0.14, 0.45, 0.091, 1.f }); // G
+    ms.quad(SCENE_SCALE * vec3{ 500.f,   0.0f,  0.0f },
+            SCENE_SCALE * vec3{ 500.f,  500.f,  0.0f },
+            SCENE_SCALE * vec3{ 500.f,  500.f, 500.f },
+            SCENE_SCALE * vec3{ 500.f,   0.0f, 500.f });  // right wall
+    
+    
+    ms.color(vec4{ 0.63, 0.065, 0.05, 1.f }); // R
+    ms.quad(SCENE_SCALE * vec3{ 0.0f,   0.0f,  500.f },
+            SCENE_SCALE * vec3{ 0.0f,  500.f,  500.f },
+            SCENE_SCALE * vec3{ 0.0f,  500.f,   0.0f },
+            SCENE_SCALE * vec3{ 0.0f,   0.0f,   0.0f });  // left wall
 #endif
 #ifdef SCENE_BOX
     // ms.cube(vec3(30.f, 100.f, 0), vec3(200.f));
@@ -281,7 +289,7 @@ void GameApplication::onInit() {
 
   cameraController = new CameraController(*mCamera);
   cameraController->speedScale(1);
-  mLight.transform.localPosition() = SCENE_SCALE * vec3{ 250.f, 497.8f, 250.f };
+  mLight.transform.localPosition() = SCENE_SCALE * vec3{ 250.f, 498.0f, 253.f };
 
   Debug::setCamera(mCamera);
   // Debug::setDepth(Debug::DEBUG_DEPTH_DISABLE);
@@ -292,6 +300,7 @@ void GameApplication::onInit() {
 
 void GameApplication::onInput() {
   float dt = GetMainClock().frame.second;
+  mEmitter.emit("foo", 1.0f, 3.2f);
 
   static float frameAvgSec = 0.f;
   frameAvgSec = frameAvgSec * .95 + GetMainClock().frame.second * .05;
@@ -305,7 +314,7 @@ void GameApplication::onInput() {
     rotation = Input::Get().mouseDeltaPosition(true) * 180.f * dt;
   }
 
-  static float intensity = 5.f;
+  static float intensity = 3.f;
   static vec3 color = vec3::one;
   {
     ImGui::Begin("Light Control");
@@ -318,13 +327,12 @@ void GameApplication::onInput() {
     ImGui::End();
     cameraController->speedScale(scale);
   }
-
+  //
   ImGui::gizmos(*mCamera, mLight.transform, ImGuizmo::TRANSLATE);
   mLight.asPointLight(intensity, vec3{ 2.f, 0, 0.f }, color);
 }
 
 void GameApplication::onRender() const {
-  RHIDevice::get()->defaultRenderContext()->beforeFrame();
   sceneRenderer->onRenderFrame(*mContext);
 }
 
